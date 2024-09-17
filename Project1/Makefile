@@ -1,26 +1,58 @@
 CC = gcc
-CFLAGS = -g -Wall -std=c99 -fsanitize=address -O2
+CFLAGS = -g -Wall -std=c99 -fsanitize=address -O2 -m32
 RM = rm -f
 
-SPELLCHECK = spchk
-DEBUGSPELLCHECK = dspchk
+STACK = stack
+DEBUGSTACK = dstack
+THREADS = threads
+DEBUGTHREADS = dthreads
+BITOPS = bitops
+DEBUGBITOPS = dbitops
 
-OBJ = spchk.o
-OBJ2 = dspchk.o
+OBJ = stack.o
+OBJ2 = dstack.o
+OBJ3 = threads.o
+OBJ4 = dthreads.o
+OBJ5 = bitops.o
+OBJ6 = dbitops.o
 
-$(SPELLCHECK): $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(SPELLCHECK)
+$(STACK): $(OBJ)
+	$(CC) $(CFLAGS) $(OBJ) -o $(STACK)
 
-$(DEBUGSPELLCHECK): $(OBJ2)
-	$(CC) $(CFLAGS) -DDEBUG=1 $(OBJ2) -o $(DEBUGSPELLCHECK)
+$(DEBUGSTACK): $(OBJ2)
+	$(CC) $(CFLAGS) -DDEBUG=1 $(OBJ2) -o $(DEBUGSTACK)
+	
+$(THREADS): $(OBJ3)
+	$(CC) $(CFLAGS) $(OBJ3) -o $(THREADS)
 
-spchk.o: spchk.c
-	$(CC) -c spchk.c
+$(DEBUGTHREADS): $(OBJ4)
+	$(CC) $(CFLAGS) -DDEBUG=1 $(OBJ4) -o $(DEBUGTHREADS)
+	
+$(BITOPS): $(OBJ5)
+	$(CC) $(CFLAGS) $(OBJ5) -o $(BITOPS)
 
-dspchk.o: spchk.c
-	$(CC) -c -DDEBUG=1 spchk.c -o dspchk.o
+$(DEBUGBITOPS): $(OBJ6)
+	$(CC) $(CFLAGS) -DDEBUG=1 $(OBJ6) -o $(DEBUGBITOPS)
 
-all: $(SPELLCHECK) $(DEBUGSPELLCHECK)
+stack.o: stack.c
+	$(CC) $(CFLAGS) -c stack.c
+
+dstack.o: stack.c
+	$(CC) $(CFLAGS) -c -DDEBUG=1 stack.c -o dstack.o
+
+threads.o: threads.c
+	$(CC) $(CFLAGS) -c threads.c
+
+dthreads.o: threads.c
+	$(CC) $(CFLAGS) -c -DDEBUG=1 threads.c -o dthreads.o
+
+bitops.o: bitops.c
+	$(CC) $(CFLAGS) -c bitops.c
+
+dbitops.o: bitops.c
+	$(CC) $(CFLAGS) -c -DDEBUG=1 bitops.c -o dbitops.o
+
+all: $(STACK) $(DEBUGSTACK) $(THREADS) $(DEBUGTHREADS) $(BITOPS) $(DEBUGBITOPS)
 
 clean:
-	$(RM) $(SPELLCHECK) $(DEBUGSPELLCHECK) $(OBJ) $(OBJ2)
+	$(RM) $(STACK) $(DEBUGSTACK) $(THREADS) $(DEBUGTHREADS) $(BITOPS) $(DEBUGBITOPS) $(OBJ) $(OBJ2) $(OBJ3) $(OBJ4) $(OBJ5) $(OBJ6)
