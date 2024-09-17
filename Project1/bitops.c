@@ -1,6 +1,7 @@
 /*
 * Add NetID and names of all project partners
-*
+eja97 Enrico Aquino
+rsb204 Rohit Bellam
 */
 #include <stdio.h>
 #include <string.h>
