@@ -1,7 +1,7 @@
 /*
 * Add NetID and names of all project partners
 eja97 Enrico Aquino
-
+rsb204 Rohit Bellam
 *
 */
 #include <signal.h>
@@ -19,12 +19,14 @@ void signal_handle(int signalno) {
     printf("handling segmentation fault!\n");
     i = i + 1; //just incrementing a variable.
 
+    /* Step 2: Handle segfault and change the stack*/
+
+
+    /* Solution */
+
     int *signop = &signalno;
 
     printf("pointer: %p\n",signop);
-
-    /* Step 2: Handle segfault and change the stack*/
-
     
 }
 
@@ -38,9 +40,6 @@ int main(int argc, char *argv[]) {
     r2 = *( (int *) 0 ); // This will generate segmentation fault
 
     r2 = r2 + 1 * 45;
-
-    printf("I live again!\n");
-
     printf("result after handling seg fault %d!\n", r2);
 
     return 0;
