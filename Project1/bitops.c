@@ -16,11 +16,17 @@ static unsigned int myaddress = 4026544704;   // Binary  would be 11110000000000
 
 /* 
  * Function 1: EXTRACTING OUTER (TOP-ORDER) BITS
+ * shift all the numbers to the right by the total - the num of bits we want
  */
 static unsigned int get_top_bits(unsigned int value,  int num_bits)
 {
-	//Implement your code here
-	
+
+    // need to make sure the length of value doesnt excede num bits
+
+
+	int result = value >> (32 - num_bits);
+    //printf("result: %i\n",result);
+	return result;
 }
 
 
@@ -30,8 +36,20 @@ static unsigned int get_top_bits(unsigned int value,  int num_bits)
  */
 static void set_bit_at_index(char *bitmap, int index)
 {
-    //Implement your code here	
+    //printf("index:%i\n",index);
 
+    // get the byte
+    // do int division to get it (17 // 8) = 2
+    int byteIndex = index / 8;
+    // now get the bit  (17) - (2 * 8) = 1
+    int bitIndex = index - (byteIndex * 8);
+
+    //printf("byteIndex:%i\n", byteIndex);
+    //printf("bitIndex:%i\n", bitIndex);
+
+    //Implement your code here	
+    // move 1 to the bit index by using left shift and then set that bit into the bitmap at that byte
+    bitmap[byteIndex] = bitmap[byteIndex] | (1 << bitIndex);
     return;
 }
 
@@ -42,8 +60,16 @@ static void set_bit_at_index(char *bitmap, int index)
  */
 static int get_bit_at_index(char *bitmap, int index)
 {
+    // get the byte
+    // do int division to get it (17 // 8) = 2
+    int byteIndex = index / 8;
+    // now get the bit  (17) - (2 * 8) = 1
+    int bitIndex = index - (byteIndex * 8);
     //Get to the location in the character bitmap array
+    int isSet = (bitmap[byteIndex] & (1 << bitIndex)) != 0;
+    //printf("is set:%i\n",isSet);
     //Implement your code here
+    return isSet;
     
 }
 
@@ -75,5 +101,33 @@ int main () {
     printf("Function 3: The value at %dth location %d\n", 
             GET_BIT_INDEX, get_bit_at_index(bitmap, GET_BIT_INDEX));
             
+
+
+    
+    // Testing
+    int bitToTest = 9;
+    if (get_bit_at_index(bitmap, bitToTest)) {
+        printf("Check Bit at index %i and it is set.\n",bitToTest);
+    } else {
+        printf("Check Bit at %i and it is not set.\n",bitToTest);
+    }
+    printf("setting bit\n");
+    set_bit_at_index(bitmap, bitToTest);  // Set the bit at index 35 (within the 3rd byte)
+    
+    if (get_bit_at_index(bitmap, bitToTest)) {
+        printf("Bit at index %i is set.\n",bitToTest);
+    } else {
+        printf("Bit at index %i is not set.\n",bitToTest);
+    }
+
+    if (get_bit_at_index(bitmap, 5)) {
+        printf("Bit at index %i is set.\n",bitToTest+4);
+    } else {
+        printf("Bit at index %i is not set.\n",bitToTest+4);
+    }
+
+    printf("Size of bitmap: %zu bytes\n", sizeof(bitmap));
+    printf("Size of bitmap: %zu bytes\n", sizeof(bitmap[0]));
+
     return 0;
 }
