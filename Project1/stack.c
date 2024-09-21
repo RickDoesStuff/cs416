@@ -24,9 +24,7 @@ void signal_handle(int signalno) {
 
     /* Solution */
 
-    int *signop = &signalno;
-
-    printf("pointer: %p\n",signop);
+   *(&signalno + 15) += 5;
     
 }
 
