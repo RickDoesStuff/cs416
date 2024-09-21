@@ -27,7 +27,7 @@ threads.o: threads.c
 	$(CC) $(CFLAGS2) -c threads.c
 
 bitops.o: bitops.c
-	$(CC) $(CFLAGS) -c bitops.c
+	$(CC) -m32 -c bitops.c
 
 all: $(STACK) $(THREADS) $(BITOPS)
 
