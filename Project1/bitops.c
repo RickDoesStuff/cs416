@@ -21,8 +21,15 @@ static unsigned int myaddress = 4026544704;   // Binary  would be 11110000000000
 static unsigned int get_top_bits(unsigned int value,  int num_bits)
 {
 
-    // need to make sure the length of value doesnt excede num bits
-
+    // need to make sure num bits is within the range
+    if(num_bits >= 32) {
+        printf("Error: num bits > 32\n");
+        return -1;
+    }
+    if(num_bits < 1) {
+        printf("Error: num bits < 1\n");
+        return -1;
+    }
 
 	int result = value >> (32 - num_bits);
     //printf("result: %i\n",result);
@@ -105,29 +112,29 @@ int main () {
 
     
     // Testing
-    int bitToTest = 9;
-    if (get_bit_at_index(bitmap, bitToTest)) {
-        printf("Check Bit at index %i and it is set.\n",bitToTest);
-    } else {
-        printf("Check Bit at %i and it is not set.\n",bitToTest);
-    }
-    printf("setting bit\n");
-    set_bit_at_index(bitmap, bitToTest);  // Set the bit at index 35 (within the 3rd byte)
+    // int bitToTest = 9;
+    // if (get_bit_at_index(bitmap, bitToTest)) {
+    //     printf("Check Bit at index %i and it is set.\n",bitToTest);
+    // } else {
+    //     printf("Check Bit at %i and it is not set.\n",bitToTest);
+    // }
+    // printf("setting bit\n");
+    // set_bit_at_index(bitmap, bitToTest);  // Set the bit at index 35 (within the 3rd byte)
     
-    if (get_bit_at_index(bitmap, bitToTest)) {
-        printf("Bit at index %i is set.\n",bitToTest);
-    } else {
-        printf("Bit at index %i is not set.\n",bitToTest);
-    }
+    // if (get_bit_at_index(bitmap, bitToTest)) {
+    //     printf("Bit at index %i is set.\n",bitToTest);
+    // } else {
+    //     printf("Bit at index %i is not set.\n",bitToTest);
+    // }
 
-    if (get_bit_at_index(bitmap, 5)) {
-        printf("Bit at index %i is set.\n",bitToTest+4);
-    } else {
-        printf("Bit at index %i is not set.\n",bitToTest+4);
-    }
+    // if (get_bit_at_index(bitmap, 5)) {
+    //     printf("Bit at index %i is set.\n",bitToTest+4);
+    // } else {
+    //     printf("Bit at index %i is not set.\n",bitToTest+4);
+    // }
 
-    printf("Size of bitmap: %zu bytes\n", sizeof(bitmap));
-    printf("Size of bitmap: %zu bytes\n", sizeof(bitmap[0]));
+    // printf("Size of bitmap: %zu bytes\n", sizeof(bitmap));
+    // printf("Size of bitmap: %zu bytes\n", sizeof(bitmap[0]));
 
     return 0;
 }
