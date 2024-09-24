@@ -61,6 +61,7 @@ static void set_bit_at_index(char *bitmap, int index)
 
     //Implement your code here	
     // move 1 to the bit index by using left shift and then set that bit into the bitmap at that byte
+	// we need to subtract bitIndex from 8 because the bit starts from right to left, but want to move left to right 
     bitmap[byteIndex] = bitmap[byteIndex] | (1 << (BYTE_SIZE-bitIndex));
     return;
 }
@@ -83,7 +84,11 @@ static int get_bit_at_index(char *bitmap, int index)
     int byteIndex = index / BYTE_SIZE;
     // now get the bit  (17) - (2 * 8) = 1
     int bitIndex = index - (byteIndex * BYTE_SIZE);
-    //Get to the location in the character bitmap array
+    
+	
+	//Get to the location in the character bitmap array
+	// we need to subtract bitIndex from 8 because the bit starts from right to left, but want to move left to right 
+
     int isSet = (bitmap[byteIndex] & (1 << (BYTE_SIZE-bitIndex))) != 0;
     //printf("is set:%i\n",isSet);
     //Implement your code here
@@ -91,7 +96,7 @@ static int get_bit_at_index(char *bitmap, int index)
     
 }
 
-// Function to print all bits in the bitmap
+// print all bits in the bitmap
 // void print_bitmap_bits(char *bitmap, int bitmap_size) {
 //     for (int byte_index = 0; byte_index < bitmap_size; byte_index++) {
 //         for (int bit_index = 0; bit_index < 8; bit_index++) {
