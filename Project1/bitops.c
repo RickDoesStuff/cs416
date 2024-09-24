@@ -60,7 +60,7 @@ static void set_bit_at_index(char *bitmap, int index)
 
     //Implement your code here	
     // move 1 to the bit index by using left shift and then set that bit into the bitmap at that byte
-    bitmap[byteIndex] = bitmap[byteIndex] | (1 << bitIndex);
+    bitmap[byteIndex] = bitmap[byteIndex] | (1 << (BYTE_SIZE-bitIndex));
     return;
 }
 
@@ -83,13 +83,24 @@ static int get_bit_at_index(char *bitmap, int index)
     // now get the bit  (17) - (2 * 8) = 1
     int bitIndex = index - (byteIndex * BYTE_SIZE);
     //Get to the location in the character bitmap array
-    int isSet = (bitmap[byteIndex] & (1 << bitIndex)) != 0;
+    int isSet = (bitmap[byteIndex] & (1 << (BYTE_SIZE-bitIndex))) != 0;
     //printf("is set:%i\n",isSet);
     //Implement your code here
     return isSet;
     
 }
 
+
+// Function to print all bits in the bitmap
+void print_bitmap_bits(char *bitmap, int bitmap_size) {
+    for (int byte_index = 0; byte_index < bitmap_size; byte_index++) {
+        for (int bit_index = 0; bit_index < 8; bit_index++) {
+            int bit = (bitmap[byte_index] >> (BYTE_SIZE - bit_index)) & 1;
+            printf("%i:%d\n", (byte_index*BYTE_SIZE)+bit_index,bit);
+        }
+    }
+    printf("\n");
+}
 
 int main () {
 
@@ -118,6 +129,15 @@ int main () {
     printf("Function 3: The value at %dth location %d\n", 
             GET_BIT_INDEX, get_bit_at_index(bitmap, GET_BIT_INDEX));
             
+
+	
+	print_bitmap_bits(bitmap, BITMAP_SIZE);
+
+	set_bit_at_index(bitmap, 2);
+	set_bit_at_index(bitmap, 6);
+	set_bit_at_index(bitmap, 9);
+	
+	print_bitmap_bits(bitmap, BITMAP_SIZE);
 
 
     
@@ -148,3 +168,33 @@ int main () {
 
     return 0;
 }
+
+
+/*
+2.2 Report In your report, describe how you implemented the bit operations.
+
+To get the top bit, we take the size of an address (32 bits) and then the num 
+of bits we want from the front and subtract the two values to get the 
+difference / the total number of bits we need to shift
+
+
+For set bit at index, we need to find which byte we need to modify, 
+we do this by taking the index and dividing it by the total number of bytes
+then we need to find which bit we need to modify, and we do this by taking the 
+(index of byte to modify * the size of a byte), this will get the amount of 
+bits the start of this byte is at.
+Then we take the index and subtract what we just calculated to get the amount of bits into the byte we are.
+We can then use this info for the bitwise math, 
+so we will move 1 to the bit index by using left shift and then set that bit into the bitmap at that byte
+We do that by taking the bit and subtracting it from 8 to get the amount it needs to shift by before being set
+
+EG:
+bit:17
+17/8 = 2 bytes in
+17-(8*2) = 1 bit into that byte
+then we have
+0000,0000,0000,0000
+
+
+
+*/
