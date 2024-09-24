@@ -61,8 +61,7 @@ static void set_bit_at_index(char *bitmap, int index)
 
     //Implement your code here	
     // move 1 to the bit index by using left shift and then set that bit into the bitmap at that byte
-	// we need to subtract bitIndex from 8 because the bit starts from right to left, but want to move left to right 
-    bitmap[byteIndex] = bitmap[byteIndex] | (1 << (BYTE_SIZE-bitIndex));
+    bitmap[byteIndex] = bitmap[byteIndex] | (1 << bitIndex);
     return;
 }
 
@@ -87,20 +86,18 @@ static int get_bit_at_index(char *bitmap, int index)
     
 	
 	//Get to the location in the character bitmap array
-	// we need to subtract bitIndex from 8 because the bit starts from right to left, but want to move left to right 
-
-    int isSet = (bitmap[byteIndex] & (1 << (BYTE_SIZE-bitIndex))) != 0;
+    int isSet = (bitmap[byteIndex] & (1 << bitIndex)) != 0;
     //printf("is set:%i\n",isSet);
     //Implement your code here
     return isSet;
     
 }
 
-// print all bits in the bitmap
+// // print all bits in the bitmap
 // void print_bitmap_bits(char *bitmap, int bitmap_size) {
 //     for (int byte_index = 0; byte_index < bitmap_size; byte_index++) {
 //         for (int bit_index = 0; bit_index < 8; bit_index++) {
-//             int bit = (bitmap[byte_index] >> (BYTE_SIZE - bit_index)) & 1;
+//             int bit = (bitmap[byte_index] >> bit_index) & 1;
 //             printf("%i:%d\n", (byte_index*BYTE_SIZE)+bit_index,bit);
 //         }
 //     }
@@ -137,13 +134,13 @@ int main () {
 
     /* Testing Code Meant to Visualize the Bitmap (NOT Part of main() function) */  
 	
-    //print_bitmap_bits(bitmap, BITMAP_SIZE);
+    // print_bitmap_bits(bitmap, BITMAP_SIZE);
 
-	//set_bit_at_index(bitmap, 2);
-	//set_bit_at_index(bitmap, 6);
-	//set_bit_at_index(bitmap, 9);
+	// set_bit_at_index(bitmap, 2);
+	// set_bit_at_index(bitmap, 6);
+	// set_bit_at_index(bitmap, 9);
 	
-	//print_bitmap_bits(bitmap, BITMAP_SIZE);
+	// print_bitmap_bits(bitmap, BITMAP_SIZE);
 
     // int bitToTest = 9;
     // if (get_bit_at_index(bitmap, bitToTest)) {
