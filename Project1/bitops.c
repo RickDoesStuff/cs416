@@ -12,6 +12,8 @@ rsb204 Rohit Bellam
 #define SET_BIT_INDEX 17 //bit index to set 
 #define GET_BIT_INDEX 17 //bit index to read
 
+#define BYTE_SIZE 8
+
 static unsigned int myaddress = 4026544704;   // Binary  would be 11110000000000000011001001000000
 
 /* 
@@ -22,12 +24,8 @@ static unsigned int get_top_bits(unsigned int value,  int num_bits)
 {
 
     // need to make sure num bits is within the range
-    if(num_bits >= 32) {
-        printf("Error: num bits > 32\n");
-        return -1;
-    }
-    if(num_bits < 1) {
-        printf("Error: num bits < 1\n");
+    if(num_bits < 1 || num_bits >= 32 ) {
+        printf("Invalid Num Bits\n");
         return -1;
     }
 
@@ -43,13 +41,19 @@ static unsigned int get_top_bits(unsigned int value,  int num_bits)
  */
 static void set_bit_at_index(char *bitmap, int index)
 {
+
+    // 0123,4567
+    // printf("sizeof(bitmap):%i\n", sizeof(bitmap));
+    if (index < 0 || index >= (BYTE_SIZE * BITMAP_SIZE)) {
+        printf("Invalid Index for setting bit\n");
+    }
     //printf("index:%i\n",index);
 
     // get the byte
     // do int division to get it (17 // 8) = 2
-    int byteIndex = index / 8;
+    int byteIndex = index / BYTE_SIZE;
     // now get the bit  (17) - (2 * 8) = 1
-    int bitIndex = index - (byteIndex * 8);
+    int bitIndex = index - (byteIndex * BYTE_SIZE);
 
     //printf("byteIndex:%i\n", byteIndex);
     //printf("bitIndex:%i\n", bitIndex);
@@ -67,11 +71,17 @@ static void set_bit_at_index(char *bitmap, int index)
  */
 static int get_bit_at_index(char *bitmap, int index)
 {
+    // 0123,4567
+    // printf("sizeof(bitmap):%i\n", sizeof(bitmap));
+    if (index < 0 || index >= (BYTE_SIZE * BITMAP_SIZE)) {
+        printf("Invalid Index for getting bit\n");
+    }
+    
     // get the byte
     // do int division to get it (17 // 8) = 2
-    int byteIndex = index / 8;
+    int byteIndex = index / BYTE_SIZE;
     // now get the bit  (17) - (2 * 8) = 1
-    int bitIndex = index - (byteIndex * 8);
+    int bitIndex = index - (byteIndex * BYTE_SIZE);
     //Get to the location in the character bitmap array
     int isSet = (bitmap[byteIndex] & (1 << bitIndex)) != 0;
     //printf("is set:%i\n",isSet);

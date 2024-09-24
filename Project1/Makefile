@@ -8,12 +8,12 @@ THREADS = threads
 BITOPS = bitops
 
 $(STACK): stack.c
-        $(CC) $(CFLAGS1) stack.c -o $(STACK)
+	$(CC) $(CFLAGS1) stack.c -o $(STACK)
 
 $(THREADS): threads.c
-        $(CC) $(CFLAGS2) threads.c -o $(THREADS)
+	$(CC) $(CFLAGS2) threads.c -o $(THREADS)
 
 $(BITOPS): bitops.c
-        $(CC) $(CFLAGS1) bitops.c -o $(BITOPS)
+	$(CC) $(CFLAGS1) bitops.c -o $(BITOPS)
 
 all: $(STACK) $(THREADS) $(BITOPS)
