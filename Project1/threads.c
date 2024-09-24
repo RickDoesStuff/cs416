@@ -1,5 +1,6 @@
 /*
 * Add NetID and names of all project partners
+cs416 tested on wax
 eja97 Enrico Aquino
 rsb204 Rohit Bellam
 */
