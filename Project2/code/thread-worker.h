@@ -82,6 +82,10 @@ typedef struct worker_mutex_t {
 #define DEFAULT_PRIO 1
 #define LOW_PRIO 0
 
+#define READY 0
+#define SCHEDULED 1
+#define BLOCKED 2
+
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
 

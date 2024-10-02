@@ -37,7 +37,7 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 
 	// get the next thread id
 	new_thread->tid = next_thread_id++;
-	print("thread id is %i\n",new_thread->tid);
+	printf("thread id is %i\n",new_thread->tid);
 
 	// - allocate space of stack for this thread to run
 	new_thread->stack = malloc(STACK_SIZE);
@@ -62,17 +62,17 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 	new_thread->ctx.uc_stack.ss_size = STACK_SIZE;
 	new_thread->ctx.uc_stack.ss_flags = 0;
 	
-	print("about to call make context");
+	printf("about to call make context\n");
 	// setup the context to start running at the given function with given 1 arg *void type
-	makecontext(new_thread, function, 1, arg);
-	print("successfully modified context");
+	makecontext(&(new_thread->ctx), function, 1, arg);
+	printf("successfully modified context\n");
 
 	// after everything is set, push this thread into run queue and 
 	// - make it ready for the execution.
-	// READY status
-	new_thread->status = 0;
-	// Default priority
-	new_thread->priority = 1;
+	// set READY status
+	new_thread->status = READY;
+	// set Default priority
+	new_thread->priority = DEFAULT_PRIO;
 
 	// returns the tid to the caller
 	*thread = new_thread->tid;
