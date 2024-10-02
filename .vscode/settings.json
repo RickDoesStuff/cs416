@@ -1,0 +1,8 @@
+{
+	"files.associations": {
+		"unistd.h": "c",
+		"stdlib.h": "c",
+		"thread-worker.h": "c",
+		"ucontext.h": "c"
+	}
+}
