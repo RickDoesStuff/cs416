@@ -92,7 +92,7 @@ typedef struct worker_mutex_t {
 // Thread Node definition (using a struct to hold the TCB pointer and the pointer to the next node)
 typedef struct ThreadNode {
 	tcb *data;
-	struct thread_node *next;
+	struct ThreadNode *next;
 } t_node_t;
 
 // Queue definition (using a struct to hold the head and tail of the queue)
