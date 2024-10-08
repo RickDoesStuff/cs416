@@ -7,6 +7,11 @@
 #include "thread-worker.h"
 
 #define STACK_SIZE 1024 * 8 // 8,192 bytes for stack, default stack size
+#define QUANTUM 10 * 1000 // For the Time Quantum
+
+#define MAX_LEVELS 4 // can be adjusted for the MLFQ
+queue_t mlfq[MAX_LEVELS];
+// this is the variable that will hold all of the four separate queues
 
 //Global counter for total context switches and 
 //average turn around and response time
@@ -14,11 +19,12 @@ long tot_cntx_switches=0;
 double avg_turn_time=0;
 double avg_resp_time=0;
 
-
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
-// YOUR CODE HERE
 
+int init_sched_finish = 0;
 static worker_t next_thread_id = 0;
+ucontext_t sched_context, main_context;
+queue_t main_queue;
 
 /* create a new thread */
 int worker_create(worker_t * thread, pthread_attr_t * attr, 
@@ -220,3 +226,7 @@ void print_app_stats(void) {
 
 // YOUR CODE HERE
 
+/*
+Have functions such as prepare_scheduler/initialize scheduler, schedule mlfq, schedule sjf, enqueue, dequeue,
+create start worker context, start worker, mlfq enqueue, mlfq dequeue
+*/

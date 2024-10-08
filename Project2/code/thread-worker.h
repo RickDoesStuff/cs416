@@ -62,9 +62,6 @@ typedef struct TCB {
 	LOW_PRIO 0
 	*/
 	int priority;
-	// And more ...
-
-	// YOUR CODE HERE
 } tcb; 
 
 /* mutex struct definition */
@@ -85,12 +82,25 @@ typedef struct worker_mutex_t {
 #define READY 0
 #define SCHEDULED 1
 #define BLOCKED 2
+#define COMPLETE 3
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
 
 // YOUR CODE HERE
 
+// Thread Node definition (using a struct to hold the TCB pointer and the pointer to the next node)
+typedef struct ThreadNode {
+	tcb *data;
+	struct thread_node *next;
+} t_node_t;
+
+// Queue definition (using a struct to hold the head and tail of the queue)
+typedef struct Queue {
+	t_node_t *head;
+	t_node_t *tail;
+	int size;
+} queue_t;
 
 /* Function Declarations: */
 
