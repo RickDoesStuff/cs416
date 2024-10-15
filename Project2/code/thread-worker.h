@@ -1,8 +1,8 @@
 // File:	worker_t.h
 
-// List all group member's name:
-// username of iLab:
-// iLab Server:
+// List all group member's name: Rohit Bellam, Enrico Aquino
+// username of iLab: rsb204, eja97
+// iLab Server: plastic
 
 #ifndef WORKER_T_H
 #define WORKER_T_H
@@ -12,63 +12,54 @@
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_WORKERS macro */
 #define USE_WORKERS 1
 
+/* Determines how long the timer runs before swapping to scheduler context (10ms) */
+#define QUANTUM 10
+#define TIME_S QUANTUM / 1000
+#define TIME_US (QUANTUM * 1000) % 1000000
+
+/* How many times quantums must elapse before resetting MLFQ */
+#define S 10
+
 /* include lib header files that you need here: */
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <sys/ucontext.h>
 #include <ucontext.h>
+#include <time.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/time.h>
+
 
 typedef uint worker_t;
 
+typedef enum status {ready, running, blocked, terminated} status;
+
 typedef struct TCB {
 	/* add important states in a thread control block */
-	/*
-	Thread ID
-	uint worker_t
-	*/
-	worker_t tid;
-
-	/*
-	Thread status
-	READY 0
-	SCHEDULED 1
-	BLOCKED 2
-	*/	
-	int status;	
-	
-	/*
-	Thread Context
-	The context of the thread
-	*/
-	ucontext_t ctx;
-	
-	/*
-	Thread stack
-	The stack for the thread
-	*/
-	void *stack;
-
-	/*
-	Thread priority
-	NUMPRIO 4
-	...
-	HIGH_PRIO 3
-	MEDIUM_PRIO 2
-	DEFAULT_PRIO 1
-	LOW_PRIO 0
-	*/
+	worker_t thread_id;
+	status thread_status;
+	ucontext_t context;
+	void* stack;
 	int priority;
+	int quantums_elapsed;
+	struct TCB* next;
+	void* return_value;
+	clock_t queued_time;
+	clock_t start_time;
+	clock_t end_time;
+	long response_time;
+	long turnaround_time;
 } tcb; 
 
 /* mutex struct definition */
 typedef struct worker_mutex_t {
 	/* add something here */
-
-	// YOUR CODE HERE
+	int initialized; //is mutex initialized
+	int locked; //is mutex lock currently locked
+	tcb* lock_owner; //pointer to TCB owner of current mutex lock
 } worker_mutex_t;
 
 /* Priority definitions */
@@ -87,21 +78,11 @@ typedef struct worker_mutex_t {
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
 
-// YOUR CODE HERE
-
-// Thread Node definition (using a struct to hold the TCB pointer and the pointer to the next node)
-typedef struct ThreadNode {
-	tcb *data;
-	struct ThreadNode *next;
-} t_node_t;
-
-// Queue definition (using a struct to hold the head and tail of the queue)
+/* define your data structures here: */
 typedef struct Queue {
-	t_node_t *head;
-	t_node_t *tail;
-	int size;
-} queue_t;
-
+        tcb* head;
+        tcb* tail;
+} Queue;
 /* Function Declarations: */
 
 /* create a new thread */
@@ -130,9 +111,64 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
 
-
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void);
+
+static void sched_psjf();
+static void sched_mlfq();
+
+//---------------------User Methods Made-------------------------//
+
+/* Signal handler for timer interrupts */
+static void signal_handler();
+
+/* Enables signal handler timer */
+static void enable_timer();
+
+/* Disables signal handler timer*/
+static void disable_timer();
+
+/* Search queue for specified thread */
+static tcb* search(worker_t thread, Queue *queue);
+
+/* Search all queues for specified thread */
+static tcb* searchAllQueues(worker_t thread);
+
+/* Function to add new thread to queue.*/
+void enqueue(Queue *queue, tcb* thread);
+
+/* Function to add thread to appropriate level of MLFQ */
+void enqueueMLFQ(tcb* thread);
+
+/* Function to remove thread (RR scheduling).*/
+tcb* dequeue(Queue* queue);
+
+/* Function to remove thread with PSJF scheduling */
+tcb* dequeuePSJF(Queue* queue);
+
+/* Function to remove thread with MLFQ scheduling */
+void dequeueMLFQ();
+
+/* Removes thread from blocked queue and enqueues to run queue */
+void blockedDequeue();
+
+/* Function to reset MLFQ and thread priorities */
+void resetMLFQ();
+
+/* Checks if specified queue is empty */
+int isEmpty(tcb *threadQueue);
+
+/* Checks if entire MLFQ is empty */
+int areQueuesEmpty();
+
+/* Function to print thread queue.*/
+void printQueue(Queue *queue);
+
+/* Function to print information about a thread.*/
+void toString(tcb *thread);
+
+/* Makes context for scheduler thread.*/
+int scheduler_benchmark_create_context();
 
 #ifdef USE_WORKERS
 #define pthread_t worker_t
