@@ -6,7 +6,6 @@
 #include "thread-worker.h"
 
 #define STACK_SIZE SIGSTKSZ
-#define DEBUG 0
 
 // Global counter for total context switches and averages
 long tot_cntx_switches = 0;
@@ -108,7 +107,6 @@ int worker_yield() {
     // - switch from thread context to scheduler context
 
     if (curThread != NULL) {
-        if (DEBUG) printf("yielding...");
         curThread->thread_status = ready;
         tot_cntx_switches++;
         swapcontext(&curThread->context, &scheduler);
@@ -118,7 +116,6 @@ int worker_yield() {
 
 /* terminate a thread */
 void worker_exit(void* value_ptr) {
-    if (DEBUG) printf("Thread %d terminating\n", curThread->thread_id);
     disable_timer();
     curThread->thread_status = terminated;
     if (value_ptr) curThread->return_value = value_ptr;
@@ -129,8 +126,6 @@ void worker_exit(void* value_ptr) {
 
     tot_resp_time += curThread->response_time;
     tot_turn_time += curThread->turnaround_time;
-
-    if (DEBUG) printf("\nresponse: %ld\nturnaround: %ld\n", curThread->response_time, curThread->turnaround_time);
 }
 
 /* Wait for thread termination */
@@ -141,10 +136,8 @@ int worker_join(worker_t thread, void** value_ptr) {
 
     tcb* joining_thread = searchAllQueues(thread);
     if (joining_thread == NULL) {
-        if (DEBUG) printf("join error: search returned null\n");
         exit(1);
     }
-    if (DEBUG) printf("found %d, searched with %d\n", joining_thread->thread_id, thread);
 
     while (joining_thread->thread_status != terminated) {
         // Busy wait (could be optimized further)
@@ -168,7 +161,6 @@ int worker_mutex_init(worker_mutex_t* mutex, const pthread_mutexattr_t* mutexatt
     mutex->initialized = 1;
     mutex->locked = 0;
     mutex->lock_owner = NULL;
-    if (DEBUG) printf("mutex initialized\n");
 
     return 0;
 }
@@ -181,17 +173,14 @@ int worker_mutex_lock(worker_mutex_t* mutex) {
     // context switch to the scheduler thread
 
     if (mutex == NULL) {
-        if (DEBUG) printf("mutex is null\n");
         return -1;
     }
     if (mutex->initialized == 0) {
-        if (DEBUG) printf("mutex uninitialized\n");
         return -1;
     }
 
     // Attempt to acquire the lock
     while (__atomic_test_and_set(&mutex->locked, 1)) {
-        if (DEBUG) printf("blocking thread %d\n", curThread->thread_id);
         curThread->thread_status = blocked;
         tot_cntx_switches++;
         swapcontext(&curThread->context, &scheduler);
@@ -210,15 +199,12 @@ int worker_mutex_unlock(worker_mutex_t* mutex) {
 
 
     if (mutex == NULL) {
-        if (DEBUG) printf("mutex is null\n");
         return -1;
     }
     if (mutex->initialized == 0 || mutex->locked == 0) {
-        if (DEBUG) printf("mutex unlocked or uninitialized\n");
         return -1;
     }
     if (mutex->lock_owner != curThread) {
-        if (DEBUG) printf("access denied\n");
         return -1;
     }
 
@@ -238,15 +224,12 @@ int worker_mutex_destroy(worker_mutex_t* mutex) {
 
     // Check for valid mutex and lock status
     if (mutex == NULL) {
-        if (DEBUG) printf("mutex is null\n");
         return -1;
     }
     if (mutex->initialized == 0 || mutex->locked == 1) {
-        if (DEBUG) printf("mutex locked or uninitialized\n");
         return -1;
     }
 
-    if (DEBUG) printf("destroying mutex\n");
     mutex->initialized = 0;
     mutex->locked = 0;
     mutex->lock_owner = NULL;
@@ -263,7 +246,6 @@ static void schedule() {
     // - invoke scheduling algorithms according to the policy (PSJF or MLFQ)
 
 
-    if (DEBUG) printf("inside scheduler\n");
     while (!areQueuesEmpty()) {
         disable_timer();
         // - schedule policy
@@ -273,20 +255,12 @@ static void schedule() {
         sched_mlfq();
 #endif
         if (!curThread->start_time) curThread->start_time = clock();
-        if (DEBUG) printf("swapping to thread %d\n", curThread->thread_id);
         curThread->thread_status = running;
         enable_timer();
         if (curThread != NULL) {
             tot_cntx_switches++;
             swapcontext(&scheduler, &curThread->context);
             curThread->quantums_elapsed++;
-        }
-        if (DEBUG) {
-            printf("MLFQ queues:\n");
-            for (int i = 0; i < MLFQ_LEVELS; i++) {
-                printf("Level %d: ", i);
-                printQueue(&mlfq_queues[i]);
-            }
         }
         if (curThread->thread_status != terminated && curThread->thread_status != blocked) {
             curThread->thread_status = ready;
@@ -297,16 +271,8 @@ static void schedule() {
 #endif
         } else if (curThread->thread_status == blocked) {
             enqueue(&blockedQueue, curThread);
-            if (DEBUG) {
-                printf("blocked queue: ");
-                printQueue(&blockedQueue);
-            }
         } else if (curThread->thread_status == terminated) {
             enqueue(&terminatedQueue, curThread);
-            if (DEBUG) {
-                printf("terminated queue: ");
-                printQueue(&terminatedQueue);
-            }
         }
     }
 }
@@ -404,14 +370,9 @@ void dequeueMLFQ() {
 void blockedDequeue() {
     tcb* temp = dequeue(&blockedQueue);
     if (temp != NULL) {
-        if (DEBUG) printf("removing thread %d from blocked queue\n", temp->thread_id);
         temp->thread_status = ready;
         temp->priority = 0; // Reset priority when unblocked
         enqueue(&mlfq_queues[0], temp);
-        if (DEBUG) {
-            printf("thread queue: ");
-            printQueue(&mlfq_queues[0]);
-        }
     }
 }
 
@@ -492,8 +453,6 @@ void toString(tcb* thread) {
 }
 
 static void signal_handler(int signum) {
-    if (DEBUG) puts("signal received\n");
-
     if (curThread != NULL) {
 #ifdef MLFQ
         if (curThread->priority < MLFQ_LEVELS - 1) curThread->priority++;
@@ -551,8 +510,7 @@ int scheduler_benchmark_create_context() {
     scheduler.uc_stack.ss_sp = stack;
     scheduler.uc_stack.ss_size = STACK_SIZE;
     scheduler.uc_stack.ss_flags = 0;
-    if (DEBUG) printf("scheduler/benchmark context created\n");
-
+    
     makecontext(&scheduler, (void*)&schedule, 0, NULL);
     setup_timer();
 

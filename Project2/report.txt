@@ -1,0 +1,492 @@
+Name and NETID:
+Rohit Bellam - rsb204
+Enrico Aquino - eja97
+Tested on: wax.cs.rutgers.edu
+
+CS416 Project 2 Report
+----------------------------
+
+a) API Implementation
+
+    thread-worker.h:
+	
+	Variables, Macros, and Data Structures:
+	
+	'#define QUANTUM 10' - This is the quantum time slice that tells the 
+	scheduling policy the amount of time a thread should run for before
+	context switching to another worker thread. 
+	
+	'#define TIME_S QUANTUM / 1000' - This macro is just another representation
+	of the time in seconds, which divides the QUANTUM specified
+
+	'#define TIME_US (QUANTUM * 1000) % 1000000' - Another metric that keeps track 
+        of the time in a different unit and metric.
+	
+	'#define S 10' - This tells the scheduler and the respective policies how many
+	time quantums must pass before resetting the MLFQ
+
+	typedef enum status - This is a way of representing the status of worker
+	threads as a fancy integer. Here are the different status values:
+	
+	    a) ready
+	    b) running
+	    c) blocked
+	    d) terminated
+
+	typedef struct TCB - The main struct that holds the Thread Control Block, which
+	holds crucial information about a thread. Some of the these variables are:
+	
+	    a) worker_t thread_id - thread id that identifies a thresd
+	    b) status thread_status - status of the thread
+	    c) ucontext_t context - thread context
+	    d) void* stack - holds the contents of the stack for a thread
+	    e) int priority - the priorty of the order of threads ran
+	    f) int quantums_elapsed - the number of quantums elapsed
+	    g) void* return_value - the return value for the thread
+	    h) clock_t queued_time - measures the queued time
+            i) clock_t start_time - measures the start time of a thread
+	    j) clock_t end_time - measures the end time of a thread
+	    k) long response_time - reports out the response time of a thread
+	    l) long turnaround_time - reports out the turnaround time of a thread
+	    m) struct TCB* next - a pointer that references the next thread's TCB
+
+	typedef struct worker_mutex_t - The mutex mechanism that allows the implementation
+	of an atomic lock using the built-in test and set function. This being a struct, 
+	the following variables were used:
+	
+	    a) int initialized - whether the mutex was initialized or not
+	    b) int locked - is the mutex locked or not
+	    c) tcb* lock_owner - thread owner of the lock
+
+	typedef struct Queue - The PRIMARY data structure chosen to hold ALL of the TCBs. 
+	Has the following implementation:
+	
+	    a) tcb* head - points to the most recently pushed thread worker
+	    b) tcb* tail - points to the thread worker that is about to be dequeued
+
+	NOTE: We are not storing the size because its not relevant!
+
+    thread-worker.c:
+
+	Variables and Macros:
+
+	double tot_resp_time - This is a global variable that keep track of the
+	response time for ALL threads which have ran!
+
+	double total_turn_time - Also a global variable but instead tracks the
+	total turnaround time for ALL threads which have ran!
+
+	int thread_counter - A global variable that keeps track of the total
+	number of threads managed by our library. This is also the number of 
+	threads that enter the respective queues!
+
+	Queue blockedQueue - A variable that holds all of the threads and their 
+	associated TCBs that are blocked by the library/scheduler. Let's say 
+	a thread is doing an IO operation, then the scheduler will update the
+	thread's status to BLOCKED and add that thread to this queue.
+
+	Queue terminatedQueue - A variable that holds all the thread and their
+	associated TCBs that are terminated by the library/scheduler.
+
+	'#define MLFQ_LEVELS 4' - A macro which details the total levels for 
+	our MLFQ queue.
+
+	'#define DEBUG 0' - A macro designed to output additional information
+	to help debug issues as they arise.
+
+	Queue mlfq_queues[MLFQ_LEVELS] - A variable that initializes our main
+	data structure, which is really an array of Queues. This will have a
+	total of 4 levels and each level is a Queue with all the TCBs linked
+	to each other.
+
+	tcb* curThread - A variable that keeps track of the thread that is 
+	running.
+
+	ucontext_t scheduler - A variable that holds the scheduler context for 
+	when the schedule() function gets called
+	
+	ucontext_t benchmark - A variable that holds the benchmark context for 
+	the thread which runs the benchmark code
+
+	ucontext_t context_main - A variable that holds the main_context for
+	the thread
+
+	struct itimerval sched_timer - A variable that uses the struct from 
+	itimerval to keep track of our scheduler's running time, which is 
+	managing the various threads
+
+	int initialcall = 1 - A variable to call the sched_bench_create_context
+	function if the scheduler hasn't been initialized yet. This includes
+	setting up the context for the scheduler, context_main, etc.
+
+	Functions:
+
+	int worker_create(worker_t* thread, pthread_attr_t* attr,
+		 void* (*function) (void*), void* arg)
+	
+	   This function will first create the TCB for a worker thread,
+	   initialize the main context and scheduler context only if it's
+	   the first call of the session. Next, it allocates memory for the
+	   TCB using malloc, initialize the respective fields in order to make
+	   it ready to run, and finally adds it to the runqueue.
+	   Note: If it's the first call, then it will call a separate function
+	   called scheduler_benchmark_create_context.
+
+
+	int worker_setschedprio(worker_t thread, int prio)
+
+	    This function ensures to update the priority of the thread passed
+	    as the argument using the prio value. It will call a user helper 
+	    function searchAllQueues() with the thread as the argument to pass
+	    in and outputs the TCB, if its found or not. It then updates the 
+	    priority of that found TCB
+
+	int worker_yield()
+
+	    This function will give control of the worker-thread to the scheduler,
+	    taking away control from the worker-thread. It checks that the thread
+	    isn't NULL before proceeding to update the TCB status from 'running'
+	    to 'ready'. We then increment total context switches and the context
+	    will now swap back to the scheduler.
+
+	void worker_exit(void *value_ptr)
+
+	    This function is the main mechanism that will terminate a thread based
+	    on the implementation of the rest of library. Here, we have an argument
+	    which is a void pointer, that stores the return address to the current
+	    thread's return value. Next, the status is updated to 'termianted' from
+	    'running'. Finally, the turnaround time and response time are recorded
+	    and updated to the thread's TCB. This also updates the total response time
+	    and the total turnaround time for ALL threads!
+
+	int worker_join(worker_t thread, void **value_ptr)
+
+	    This function will block the thread which called join UNTIL the thread 
+	    id is passed into the function terminates. First, the thread which was
+	    passed in will be searched in the queues. This means that the function
+	    will do nothing UNTIL the status of the thread is terminated. 
+	    After the thread is terminated, the thread can continue and the function
+	    can return. Finally, the return value (assuming the function isn't void)
+	    is also stored in value_ptr
+
+	int worker_mutex_init(worker_mutex_t *mutex, 
+                          const pthread_mutexattr_t *mutexattr)
+
+	    This function will initialize the worker_mutex_t struct from the header file
+	    of the respective fields so the worker threads can utilize this mutex 
+	    for synchronization purposes.
+
+	int worker_mutex_lock(worker_mutex_t *mutex)
+	
+	    This function uses the built-in _atomic_test_and_set() function to do the
+	    following:
+	
+		a) set the lock field of worker_mutex to 1
+	    
+	    Next, the function will return the initial value of the mutex lock, checking
+	    this value using a while loop. This keeps the thread in the loop even with
+	    context switches UNTIL the lock is released.
+
+	    From there, if the thread does not have access to the lock, the status of the
+	    thread's TCB will be set to 'blocked' and the context is then swapped to the 
+	    scheduler. This will enqueue this 'blocked' thread into the blocked queue 
+	    instead of the run queue.
+
+	    If the thread has access, however, then it will be pointed to by the mutex lock
+	    owner and the thread can have access to next critical section(s).
+
+	int worker_mutex_unlock(worker_mutex_t *mutex)
+
+	    This function will first check if the thread that is calling this function is
+	    the owner of the lock. If they are not, it will do nothing and wait. 
+	    
+	    But if the thread is the owner of the lock, it will update the worker_mutex_t
+	    fields, remove the thread from the head of the blockedQueue, and enqueue it to
+	    the run queue.
+
+	int worker_mutex_destroy(worker_mutex_t *mutex)
+
+	    This function will clear all the fields from the worker_mutex_t by resetting
+	    the fields. This means that it CANNOT be used unless worker_mutex_init is called
+	    to reinitialize the mutex.
+
+	static void schedule()
+
+	    This function acts as the primary scheduler function where the scheduler context
+	    is assigned to and how the rest of this library builds upon. First, the timer
+	    is disabled using disable_timer(). This is to ensure that the scheduler is NOT
+	    interrupted. Then, the scheduler calls the respective scheduling policy based
+	    on what was called. Upon storing the next thread to run in curThread, the status
+	    of the thread is changed into 'running'. Then the timer gets enabled again before
+	    the thread starts to run. 
+
+	    At this point, once the scheduler context takes ownership again, the thread will
+	    again have its status changed back to 'ready' IF and ONLY IF it's not blocked
+	    nor terminated. From there, it will be added to the appropriate queue based on
+	    the scheduling policy.
+
+	    Now, let's say the thread status is 'blocked'. If this happens, then the thread
+	    is put into the blocked queue, and if its terminated, it will be put into the
+	    terminated queue.
+
+	
+	static void sched_psjf()
+	
+	    This function selects the thread with the lowest `quantums_elapsed`, a field in 
+	    the TCB that tracks how many times the thread has been interrupted by the 
+	    timer. The timer, set by the `QUANTUM` macro (10ms), increments this field at 
+	    each interrupt. The thread with the fewest elapsed quantums is removed from 
+	    the run queue and executed when the scheduler switches contexts.
+
+
+	static void sched_mlfq()
+
+	    This function searches through 4 priority queues, starting from the highest, 
+	    to find the first thread (highest priority) and removes it from the run queue 
+	    to run next. After each timer interrupt, the running thread’s priority is 
+	    lowered, and it’s re-enqueued to a lower-level queue based on its new priority. 
+	    The MLFQ algorithm tracks a global quantum count to periodically reset all 
+	    queues, as required by rule 5. The S macro sets how many quantums must pass 
+	    before resetting the MLFQ. Upon reset, all threads have their priorities 
+	    set to 0 and are moved to the top queue.
+
+	void enqueue(Queue* queue, tcb* thread)
+
+	    This function adds a new worker thread, via a TCB, to the specified Queue. Here,
+	    it either assigns pointer of the queue to the pointer of the thread if the
+	    queue is empty or traverses to the end of the queue and appends the thread.
+
+	tcb* dequeue(Queue* queue)
+	
+	    This function dequeues the thread from the specified queue
+
+	void enqueueMLFQ(tcb* thread)
+
+	    This function places the thread into one of the four levels of queues, which
+	    depends on the priority level of the worker thread.
+
+	tcb* dequeuePSJF(Queue * queue)
+	
+	    This function searches through the queue to find a thread with the lowest
+	    quantums elapsed and appropriately changes the run queue. Once it has found
+	    a thread that meets this criteria, it removes the target thread from the 
+	    queue and proceeds to update the queue.
+
+	void dequeueMLFQ()
+	
+	    This function handles the process of dequeueing a thread starting from the
+	    highest level queue, assuming the thread exists.
+
+	void blockedDequeue()
+
+	    This function focuses on removing a thread at the head of the blocked queue and
+	    puts that thread back into the run queue.
+
+	void resetMLFQ()
+
+	   This function initializes all of the thread priorities to 0 and moves them all to
+	   the highest level run queue. 
+
+	static tcb* search(worker_t thread, Queue* queue)
+
+	   This function attempts to find the specified thread using the given thread id 
+	   against the provided queue 
+
+	static tcb* searchAllQueues(worker_t thread)
+
+	   This function is an expansion of the search() function in that it searches ALL
+	   levels, each with a run queue, to find the specified thread using the thread id.
+	   In a sense, this function allows worker_join to free its data. In this case, the
+	   number of queues searched will depend on which scheduling policy was selected.
+
+	int areQueuesEmpty()
+
+	   This function verifies if the queue(s) are empty or not
+
+	static void signal_handler(int signum)
+
+	   This function gets called for every timer interrupt. If that happens, then the
+	   scheduler kicks in to schedule the threads. It also handles the total quantums
+	   elapsed, resetting the MLFQ from time to time, and will adjust the priority of
+	   a thread once it has completed a time quantum.
+
+	static void enable_timer()
+	 
+	   This function enables the timer set from the struct itimerval.
+
+	static void disable_timer()
+
+	   This function disables the timer set from the struct itimerval.
+
+	void setup_timer()
+
+	   This function initializes the timer, which is assigned to the signal handler
+	   function. Also, the timer parameters and setitimer is called.
+
+	int scheduler_benchmark_create_context()
+
+	   This function ONLY gets called on the FIRST call of worker_create. Here, both
+	   the scheduler and benchmark contexts are created and initialized, and the 
+	   benchmark context is assigned a TCB wheras the scheduler context is stored
+	   in a global variable. This is where setup_timer is also called along with 
+	   control handed over to the scheduler context.
+
+b) Benchmark Output:
+
+    Policy - MLFQ
+
+	a) My Thread Library
+	
+	   external_calc.c:
+	   
+	   5 threads - total runtime: 386 microseconds, context switches: 95, turnaround: 255.0, response: 10.0
+	   10 threads - total runtime: 343 microseconds, context switches: 102, turnaround: 220.0, response: 13.0
+	   20 threads - total runtime: 372 microseconds, context switches: 102, turnaround: 191.0, response: 83.0
+	   50 threads - total runtime: 419 microseconds, context switches: 176, turnaround: 107.0, response: 57.0
+	   100 threads - total runtime: 361 microseconds, context switches: 192, turnaround: 109.0, response: 88.0
+
+	   vector_multiply.c:
+
+	   5 threads - total runtime: 40 microseconds, context switches: 9, turnaround: 18.0, response: 14.0            
+           10 threads - total runtime: 40 microseconds, context switches: 14, turnaround: 21.0, response: 19.0
+           20 threads - total runtime: 40 microseconds, context switches: 24, turnaround: 23.0, response: 22.0
+           50 threads - total runtime: 45 microseconds, context switches: 54, turnaround: 27.0, response: 26.0
+           100 threads - total runtime: 40 microseconds, context switches: 104, turnaround: 24.0, response: 23.0
+
+	   parallel_cal.c:
+	
+	   5 threads - total runtime: 1679 microseconds, context switches: 395, turnaround: 1357.0, response: 26.0            
+           10 threads - total runtime: 1491 microseconds, context switches: 372, turnaround: 1295.0, response: 65.0
+           20 threads - total runtime: 1467 microseconds, context switches: 372, turnaround: 1318.0, response: 144.0
+           50 threads - total runtime: 1418 microseconds, context switches: 338, turnaround: 1084.0, response: 383.0
+           100 threads - total runtime: 1433 microseconds, context switches: 356, turnaround: 902.0, response: 654.0
+
+	b) Linux pthread library
+
+	   external_cal.c:
+	   
+	   5 threads - total runtime: 1254 microseconds
+	   10 threads - total runtime: 1390 microseconds
+	   20 threads - total runtime: 1392 microseconds
+	   50 threads - total runtime: 1472 microseconds
+	   100 threads - total runtime: 1422 microseconds
+
+	   vector_multiply.c:
+
+	   5 threads - total runtime: 202 microseconds
+           10 threads - total runtime: 239 microseconds
+           20 threads - total runtime: 292 microseconds
+           50 threads - total runtime: 257 microseconds
+           100 threads - total runtime: 260 microseconds
+
+	   parallel_cal.c:	
+
+	   5 threads - total runtime: 297 microseconds
+           10 threads - total runtime: 168 microseconds
+           20 threads - total runtime: 137 microseconds
+           50 threads - total runtime: 97 microseconds
+           100 threads - total runtime: 98 microseconds
+
+
+    Policy - PSJF:
+
+	a) My Thread Library
+
+	   external_calc.c:
+	   
+	   5 threads - total runtime: 392 microseconds, context switches: 89, turnaround: 270.0, response: 25.0
+           10 threads - total runtime: 382 microseconds, context switches: 164, turnaround: 246.0, response: 13.0
+           20 threads - total runtime: 356 microseconds, context switches: 116, turnaround: 167.0, response: 63.0
+           50 threads - total runtime: 355 microseconds, context switches: 160, turnaround: 86.0, response: 44.0
+           100 threads - total runtime: 364 microseconds, context switches: 182, turnaround: 124.0, response: 103.0
+
+           vector_multiply.c:
+
+	   5 threads - total runtime: 38 microseconds, context switches: 9, turnaround: 17.0, response: 14.0
+           10 threads - total runtime: 41 microseconds, context switches: 14, turnaround: 21.0, response: 20.0
+           20 threads - total runtime: 44 microseconds, context switches: 24, turnaround: 25.0, response: 24.0
+           50 threads - total runtime: 44 microseconds, context switches: 54, turnaround: 26.0, response: 26.0
+           100 threads - total runtime: 40 microseconds, context switches: 104, turnaround: 23.0, response: 23.0
+
+           parallel_cal.c:
+
+	   5 threads - total runtime: 1653 microseconds, context switches: 393, turnaround: 1360.0, response: 26.0
+           10 threads - total runtime: 1511 microseconds, context switches: 370, turnaround: 1321.0, response: 65.0
+           20 threads - total runtime: 1449 microseconds, context switches: 372, turnaround: 1321.0, response: 144.0
+           50 threads - total runtime: 1378 microseconds, context switches: 336, turnaround: 1071.0, response: 383.0
+           100 threads - total runtime: 1397 microseconds, context switches: 352, turnaround: 886.0, response: 653.0
+
+	b) Linux pthread library
+
+	   external_calc.c:
+	
+	   5 threads - total runtime: 1255 microseconds
+           10 threads - total runtime: 1390 microseconds
+           20 threads - total runtime: 1388 microseconds
+           50 threads - total runtime: 1375 microseconds
+           100 threads - total runtime: 1379 microseconds
+
+           vector_multiply.c:
+
+	   5 threads - total runtime: 200 microseconds
+           10 threads - total runtime: 259 microseconds
+           20 threads - total runtime: 282 microseconds
+           50 threads - total runtime: 264 microseconds
+           100 threads - total runtime: 232 microseconds
+
+           parallel_cal.c:
+
+	   5 threads - total runtime: 290 microseconds
+           10 threads - total runtime: 150 microseconds
+           20 threads - total runtime: 130 microseconds
+           50 threads - total runtime: 101 microseconds
+           100 threads - total runtime: 90 microseconds
+
+c) Benchmark Analysis:
+
+	After running the benchmark code, what we noticed is that at least for the MLFQ scheduling policy, on average, our 
+	implementation of the worker thread library was faster for the external_cal and vector_multiply files. Even increasing
+	the number of threads also helped improve the overall runtime. But for parallel_cal, the pthread library was faster than
+	our implementation of the worker thread library. Overall, our worker thread library was around ~70% faster in external_cal
+	and ~80% faster in vectory_multiply.
+	
+	As for the PSJF, it was more or less the same observations; the PSJF policy was faster for our implementation of the 
+	worker thread library versus the default linux pthread library. But, once again, for parallel_cal, the pthread library 
+	was faster than our implementation of the worker thread library. Overall, similar to the MLFQ metrics, our worker thread 
+	library was around ~70% faster in external_cal and ~80% faster in vectory_multiply.
+
+	Now, while two out of the three benchmark files were faster in our favor, increasing the number of threads can sometimes
+	affect the runtime by increasing it for certain instances. This could mean that setting aside more space for data
+	and having increased number of threads using that larger space can affect the runtime.
+
+	We belive the most logical reason why the default liunx pthread library is faster in parallel_cal is due to the fact
+	that it handles much more cases logically, efficiently, and elegantly. In addition, it may have multiple scheduling 
+	mechanisms and switch to them depending on what program its running due to the optimizations.
+
+d) test.c
+
+	This file was initially empty but we decided to implement a simple program that
+	demonstrates most, if not all, of the capabilities of the worker thread library
+	that me and my partner implemented. Thie program takes in an argument, which is
+	the number of user worker threads to use and will increment a shared program
+	counter. It will output the progress of each thread as you go. To keep things
+	simple, we have a max limit of 25 threads to keep it reasonable.
+
+	You can run this program by doing the following:
+	
+	1. in the benchmarks directory, create the executable files using:
+	
+		a) make SCHED=MLFQ
+	
+		OR
+		
+		b) make SCHED=PSJF
+
+	2. Run the test exectuable by running:
+	
+		./test NUMBER_OF_THREADS
+
+	Here, to verify the solution, the program counter will just be the following:
+
+		program_counter = 5 * NUMBER_OF_THREADS
+

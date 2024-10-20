@@ -45,13 +45,13 @@ typedef struct TCB {
 	void* stack;
 	int priority;
 	int quantums_elapsed;
-	struct TCB* next;
 	void* return_value;
 	clock_t queued_time;
 	clock_t start_time;
 	clock_t end_time;
 	long response_time;
 	long turnaround_time;
+	struct TCB* next;
 } tcb; 
 
 /* mutex struct definition */
@@ -69,11 +69,6 @@ typedef struct worker_mutex_t {
 #define MEDIUM_PRIO 2
 #define DEFAULT_PRIO 1
 #define LOW_PRIO 0
-
-#define READY 0
-#define SCHEDULED 1
-#define BLOCKED 2
-#define COMPLETE 3
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
@@ -160,12 +155,6 @@ int isEmpty(tcb *threadQueue);
 
 /* Checks if entire MLFQ is empty */
 int areQueuesEmpty();
-
-/* Function to print thread queue.*/
-void printQueue(Queue *queue);
-
-/* Function to print information about a thread.*/
-void toString(tcb *thread);
 
 /* Makes context for scheduler thread.*/
 int scheduler_benchmark_create_context();
