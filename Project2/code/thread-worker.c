@@ -126,6 +126,9 @@ void worker_exit(void* value_ptr) {
 
     tot_resp_time += curThread->response_time;
     tot_turn_time += curThread->turnaround_time;
+
+    avg_resp_time = tot_resp_time / thread_counter;
+    avg_turn_time = tot_turn_time / thread_counter;
 }
 
 /* Wait for thread termination */
@@ -294,8 +297,6 @@ static void sched_mlfq() {
 // DO NOT MODIFY THIS FUNCTION
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void) {
-    avg_resp_time = tot_resp_time / thread_counter;
-    avg_turn_time = tot_turn_time / thread_counter;
     fprintf(stderr, "Total context switches %ld \n", tot_cntx_switches);
     fprintf(stderr, "Average turnaround time %lf \n", avg_turn_time);
     fprintf(stderr, "Average response time  %lf \n", avg_resp_time);
